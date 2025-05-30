@@ -1,0 +1,95 @@
+# Getting started [Getting started with dAppBooster in just a few lines of code]
+
+## Installation
+
+:::info
+**Requirements**
+
+- Node v20+ from https://nodejs.org/
+- pnpm from https://pnpm.io/
+:::
+
+
+Get a clean instance of the starter-kit by running this command.
+
+You can select between several configuration options for your installation, remove optional packages, etc. Choose what you need for your particular project.
+
+```bash [Terminal]
+# Run the installation script
+$ pnpm dlx dappbooster <dAppName>
+```
+
+:::warning
+**Git repository**
+
+You might want to change your project's remote repository to a different one.
+:::
+
+```bash [Terminal]
+# Change the remote repository
+git remote set-url origin <repository-url>
+```
+
+## A note regarding subgraphs
+
+There are no additional configuration requirements for the most part but **if you opted-in for subgraph support**, you'll need to provide the required environment vars in `.env.local` for the subgraph features to work.
+
+:::tip
+**Values for the mandatory subgraph env vars**
+
+You can use the default values from most of the vars you'll  find in our `.env.example` file, but **you have to provide your own subgraph API key** (otherwise the dApp will not work). You can get one at https://thegraph.com/studio/apikeys/
+:::
+
+```bash [.env.local]
+# Subgraph API key
+PUBLIC_SUBGRAPHS_API_KEY='Your API key'
+# Environment
+PUBLIC_SUBGRAPHS_ENVIRONMENT='production'
+# comma separated list of <chainId>:<subgraphId>:<resourceId>
+PUBLIC_SUBGRAPHS_CHAINS_RESOURCE_IDS=''
+
+# URLs for the subgraphs in development and production
+# must have the replaceable strings [apiKey], [resourceId], and optionally [subgraphId]
+PUBLIC_SUBGRAPHS_DEVELOPMENT_URL=''
+PUBLIC_SUBGRAPHS_PRODUCTION_URL=''
+
+```
+
+:::warning
+**Code generation**
+
+After you added your API key and the other subgraph variables, don't forget to run the code generator.
+:::
+
+```bash [Terminal]
+# Run the code generator
+$ pnpm subgraph-codegen
+```
+
+:::info
+**More about subgraphs**
+
+Read more about using subgraphs in the [subraph recipe](/recipes/subgraphs) and [subgraph plugin](/advanced/subgraph-plugin) sections.
+:::
+
+## Running the dApp
+
+You can run the dApp in dev mode and start modifying the content of the home page by editing `src/components/pageComponents/home/index.tsx`. The page auto-updates as you edit the file.
+
+```bash [Terminal]
+pnpm dev
+```
+
+Open the link provided by this command in the browser.
+
+:::info
+**Additional configuration**
+
+Check `.env.local` and `.env.example` for additional configurations, most vars are self-explanatory.
+:::
+
+## Warming engines
+
+And that's it!
+
+We recommend starting with the [My first dApp recipe](/recipes/my-first-dapp) to see how easy it is to build a dApp with our starter kit. In just five minutes, this guide will show you how to create a dApp that lets you wrap and unwrap WETH on the Sepolia network. This hands-on introduction is an excellent first step to using dappBooster and getting familiar with its components.

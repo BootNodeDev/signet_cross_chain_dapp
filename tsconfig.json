@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "allowJs": false,
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": "./",
+    "customConditions": ["source"],
+    "esModuleInterop": false,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ESNext",
+    "types": ["vitest/globals"],
+    "useDefineForClassFields": true,
+    "paths": {
+      "@/src/*": ["./src/*"],
+      "@packageJSON": ["./package.json"]
+    }
+  },
+  "include": ["src"],
+  "exclude": [
+    ".install-files",
+    "src/subgraphs/queries/aave",
+    "src/subgraphs/queries/uniswap",
+    "src/hooks/generated.ts",
+    "src/subgraphs/gql"
+  ],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
