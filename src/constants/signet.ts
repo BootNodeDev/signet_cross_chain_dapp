@@ -1,0 +1,15 @@
+import { parseEther } from "viem";
+
+const RPC_ENDPOINT = "https://rpc.pecorino.signet.sh";
+const ROLLUP_CHAIN_ID = 14174;
+const HOST_CHAIN_ID = 1; // mainnet
+const ROLLUP_ORDERS_CONTRACT = "0x4E8cC181805aFC307C83298242271142b8e2f249"; // on rollup
+const ETH_AMOUNT = parseEther("0.01");
+
+export {
+  RPC_ENDPOINT,
+  ROLLUP_CHAIN_ID,
+  HOST_CHAIN_ID,
+  ROLLUP_ORDERS_CONTRACT,
+  ETH_AMOUNT,
+};
