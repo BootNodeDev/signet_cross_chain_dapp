@@ -2,21 +2,26 @@ import axios from "axios";
 import {
   ETH_AMOUNT,
   HOST_CHAIN_ID,
+  PERMIT2_CONTRACT,
   ROLLUP_CHAIN_ID,
   ROLLUP_ORDERS_CONTRACT,
   RPC_ENDPOINT,
 } from "../constants/signet";
-import { getAddress, Hex, parseSignature, WalletClient } from "viem";
+import { Address, getAddress, Hex, parseSignature, WalletClient } from "viem";
 import {
   Order,
+  Permit2Batch,
   SendOrderRPCResponse,
   SignedOrder,
   UnsignedOrder,
 } from "../types/signet";
 
+// TODO Remove
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
 };
+
+const DEFAULT_DEADLINE = BigInt(Math.floor(Date.now() / 1000) + 60 * 5);
 
 /**
  * Create an unsigned order
@@ -26,33 +31,44 @@ import {
  * @returns An unsigned order
  */
 export const createUnsignedOrder = (
-  accountAddress: string,
-  rollupTokenAddress: string,
-  hostTokenAddress: string,
+  accountAddress: Address,
+  rollupTokenAddress: Address,
+  hostTokenAddress: Address,
+  amount: bigint = ETH_AMOUNT,
 ): UnsignedOrder => {
-  // Deadline 5 minutes from now
-  const deadline = BigInt(Math.floor(Date.now() / 1000) + 60 * 5);
-
   const order: Order = {
     inputs: [
       {
         token: getAddress(rollupTokenAddress),
-        amount: ETH_AMOUNT,
+        amount,
       },
     ],
     outputs: [
       {
         token: getAddress(hostTokenAddress),
-        amount: ETH_AMOUNT,
+        amount,
         recipient: getAddress(accountAddress),
         chainId: HOST_CHAIN_ID,
       },
     ],
-    deadline,
+    deadline: DEFAULT_DEADLINE,
+  };
+
+  const permit2Batch: Permit2Batch = {
+    permit: {
+      permitted: order.inputs.map((input) => ({
+        token: input.token,
+        amount: input.amount,
+      })),
+      nonce: BigInt(Math.floor(Math.random() * 1000000)), // Generate a random nonce
+      deadline: DEFAULT_DEADLINE,
+    },
+    owner: getAddress(accountAddress),
   };
 
   return {
     order,
+    permit2: permit2Batch,
     chainId: ROLLUP_CHAIN_ID,
     contractAddress: getAddress(ROLLUP_ORDERS_CONTRACT),
   };
@@ -67,33 +83,19 @@ export const createUnsignedOrder = (
  */
 const signOrder = async (
   unsignedOrder: UnsignedOrder,
-  account: `0x${string}`,
+  account: Address,
   client: WalletClient,
 ): Promise<SignedOrder> => {
   // EIP-712 typed data for signing
-  const domain = {
+  const orderDomain = {
     name: "RollupOrders",
     version: "1",
     chainId: BigInt(unsignedOrder.chainId),
     verifyingContract: unsignedOrder.contractAddress as Hex,
   };
 
-  // Convert bigint to string for JSON compatibility
-  const orderForSigning = {
-    ...unsignedOrder.order,
-    deadline: unsignedOrder.order.deadline.toString(),
-    inputs: unsignedOrder.order.inputs.map((input) => ({
-      ...input,
-      amount: input.amount.toString(),
-    })),
-    outputs: unsignedOrder.order.outputs.map((output) => ({
-      ...output,
-      amount: output.amount.toString(),
-    })),
-  };
-
   // Define the types according to the contract's expected format
-  const types = {
+  const orderTypes = {
     Order: [
       { name: "deadline", type: "uint256" },
       { name: "inputs", type: "Input[]" },
@@ -112,19 +114,52 @@ const signOrder = async (
   };
 
   // Sign the typed data
-  const signedData = await client.signTypedData({
+  const signedOrder = await client.signTypedData({
     account,
-    domain,
-    types,
+    domain: orderDomain,
+    types: orderTypes,
     primaryType: "Order",
-    message: orderForSigning,
+    message: unsignedOrder.order,
   });
 
-  const signature = parseSignature(signedData);
+  // const orderSignature = parseSignature(signedOrder);
+  const orderSignature = signedOrder;
+  // EIP-712 typed data for signing the Permit2 batch
+  const permit2Domain = {
+    name: "Permit2",
+    chainId: BigInt(unsignedOrder.chainId),
+    verifyingContract: PERMIT2_CONTRACT as Hex,
+  };
+
+  const permit2Types = {
+    PermitBatchTransferFrom: [
+      { name: "permitted", type: "TokenPermissions[]" },
+      { name: "nonce", type: "uint256" },
+      { name: "deadline", type: "uint256" },
+    ],
+    TokenPermissions: [
+      { name: "token", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+  };
+
+  // Sign the Permit2 batch
+  const signetPermit2 = await client.signTypedData({
+    account,
+    domain: permit2Domain,
+    types: permit2Types,
+    primaryType: "PermitBatchTransferFrom",
+    message: unsignedOrder.permit2.permit,
+  });
+
+  // Update the permit2 signature
+  // unsignedOrder.permit2.signature = parseSignature(signetPermit2);
+  unsignedOrder.permit2.signature = signetPermit2;
 
   return {
-    order: orderForSigning,
-    signature: signature,
+    order: unsignedOrder.order,
+    permit2: unsignedOrder.permit2,
+    signature: orderSignature,
     chainId: unsignedOrder.chainId,
     contractAddress: unsignedOrder.contractAddress,
   };

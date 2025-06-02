@@ -1,36 +1,54 @@
-import { parseSignature } from "viem";
+import { Address, Hex, parseSignature } from "viem";
 
 type Input = {
-  token: string;
-  amount: bigint | string;
+  token: Address;
+  amount: bigint;
 };
 
 type Output = {
-  token: string;
-  amount: bigint | string;
-  recipient: string;
+  token: Address;
+  amount: bigint;
+  recipient: Address;
   chainId: number;
 };
 
 type Order = {
   inputs: Input[];
   outputs: Output[];
-  deadline: bigint | string;
+  deadline: bigint;
+};
+
+type TokenPermissions = {
+  token: Address;
+  amount: bigint;
+};
+
+type PermitBatchTransferFrom = {
+  permitted: TokenPermissions[];
+  nonce: bigint;
+  deadline: bigint;
+};
+
+// type Signature = ReturnType<typeof parseSignature>;
+type Signature = Hex;
+type Permit2Batch = {
+  permit: PermitBatchTransferFrom;
+  owner: Address;
+  signature?: Signature;
 };
 
 type UnsignedOrder = {
   order: Order;
+  permit2: Permit2Batch;
   chainId: number;
-  contractAddress: string;
+  contractAddress: Address;
 };
 
-type SignedOrder = {
-  order: Order;
-  signature: ReturnType<typeof parseSignature>;
-  chainId: number;
-  contractAddress: string;
+type SignedOrder = UnsignedOrder & {
+  signature: Signature;
 };
 
+// TODO Replace with real return type
 type SendOrderRPCResponse = {
   txHash: string;
 };
@@ -42,4 +60,5 @@ export type {
   UnsignedOrder,
   SignedOrder,
   SendOrderRPCResponse,
+  Permit2Batch,
 };
