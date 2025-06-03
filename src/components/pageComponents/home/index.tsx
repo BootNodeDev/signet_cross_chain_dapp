@@ -19,7 +19,10 @@ const CreateOrder = () => {
       {!signedOrder ? (
         <Button
           onClick={() =>
-            createSignedOrder().then((data: any) => {
+            createSignedOrder(
+              "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+              "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+            ).then((data: any) => {
               console.log(data);
             })
           }

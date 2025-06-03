@@ -158,11 +158,9 @@ const signOrder = async (
   });
 
   return {
-    permit: {
-      permit: permit.permit,
-      signature,
-      owner: account,
-    },
+    permit: permit.permit,
+    signature,
+    owner: account,
     outputs: permit.outputs,
   };
 };

@@ -60,8 +60,7 @@ type UnsignedOrder = {
   contractAddress: Address;
 };
 
-type SignedOrder = {
-  permit: Permit2Batch;
+type SignedOrder = Permit2Batch & {
   outputs: Output[];
 };
 
