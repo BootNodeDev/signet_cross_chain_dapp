@@ -7,10 +7,14 @@ import {
   ROLLUP_ORDERS_CONTRACT,
   RPC_ENDPOINT,
 } from "../constants/signet";
-import { Address, getAddress, Hex, parseSignature, WalletClient } from "viem";
+import { Address, getAddress, hashTypedData, WalletClient } from "viem";
 import {
   Order,
   Permit2Batch,
+  PermitBatchTransferFrom,
+  PermitBatchWitnessTransferFrom,
+  PermitSigningArgs,
+  PermitSigningInfo,
   SendOrderRPCResponse,
   SignedOrder,
   UnsignedOrder,
@@ -60,7 +64,7 @@ export const createUnsignedOrder = (
         token: input.token,
         amount: input.amount,
       })),
-      nonce: BigInt(Math.floor(Math.random() * 1000000)), // Generate a random nonce
+      nonce: BigInt(Date.now()) * 1_000_000n, // timestamp as microseconds
       deadline: DEFAULT_DEADLINE,
     },
     owner: getAddress(accountAddress),
@@ -74,94 +78,92 @@ export const createUnsignedOrder = (
   };
 };
 
-/**
- * Sign an unsigned order
- * @param unsignedOrder The unsigned order
- * @param account The viem account
- * @param client The wallet client
- * @returns A signed order
- */
+const permitSigningInfo = ({
+  outputs,
+  deadline,
+  nonce,
+  rollupChainId,
+  rollupOrderContract,
+  permitted,
+}: PermitSigningArgs): PermitSigningInfo => {
+  const permitBatch: PermitBatchWitnessTransferFrom = {
+    permitted,
+    spender: rollupOrderContract,
+    nonce,
+    deadline,
+    outputs,
+  };
+
+  const domain = {
+    chainId: rollupChainId,
+    name: "Permit2",
+    verifyingContract: PERMIT2_CONTRACT as Address,
+  };
+
+  const signingHash = hashTypedData({
+    domain,
+    types: {
+      PermitBatchWitnessTransferFrom: [
+        { name: "permitted", type: "Permitted[]" },
+        { name: "spender", type: "address" },
+        { name: "nonce", type: "uint256" },
+        { name: "deadline", type: "uint256" },
+        { name: "outputs", type: "Output[]" },
+      ],
+      Permitted: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint256" },
+      ],
+      Output: [
+        { name: "token", type: "address" },
+        { name: "amount", type: "uint256" },
+      ],
+    },
+    primaryType: "PermitBatchWitnessTransferFrom",
+    message: permitBatch,
+  });
+
+  const permit: PermitBatchTransferFrom = {
+    permitted: permitBatch.permitted,
+    nonce,
+    deadline,
+  };
+
+  return {
+    signingHash,
+    permit,
+    outputs: permitBatch.outputs,
+  };
+};
+
 const signOrder = async (
   unsignedOrder: UnsignedOrder,
   account: Address,
   client: WalletClient,
 ): Promise<SignedOrder> => {
-  // EIP-712 typed data for signing
-  const orderDomain = {
-    name: "RollupOrders",
-    version: "1",
-    chainId: BigInt(unsignedOrder.chainId),
-    verifyingContract: unsignedOrder.contractAddress as Hex,
-  };
-
-  // Define the types according to the contract's expected format
-  const orderTypes = {
-    Order: [
-      { name: "deadline", type: "uint256" },
-      { name: "inputs", type: "Input[]" },
-      { name: "outputs", type: "Output[]" },
-    ],
-    Input: [
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-    Output: [
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" },
-      { name: "recipient", type: "address" },
-      { name: "chainId", type: "uint32" },
-    ],
-  };
-
-  // Sign the typed data
-  const signedOrder = await client.signTypedData({
-    account,
-    domain: orderDomain,
-    types: orderTypes,
-    primaryType: "Order",
-    message: unsignedOrder.order,
+  const permit = permitSigningInfo({
+    outputs: unsignedOrder.order.outputs,
+    nonce: unsignedOrder.permit2.permit.nonce,
+    deadline: unsignedOrder.permit2.permit.deadline,
+    rollupChainId: unsignedOrder.chainId,
+    rollupOrderContract: unsignedOrder.contractAddress,
+    permitted: unsignedOrder.permit2.permit.permitted,
   });
 
-  // const orderSignature = parseSignature(signedOrder);
-  const orderSignature = signedOrder;
-  // EIP-712 typed data for signing the Permit2 batch
-  const permit2Domain = {
-    name: "Permit2",
-    chainId: BigInt(unsignedOrder.chainId),
-    verifyingContract: PERMIT2_CONTRACT as Hex,
-  };
+  console.log({ permit, chainId: unsignedOrder.chainId });
 
-  const permit2Types = {
-    PermitBatchTransferFrom: [
-      { name: "permitted", type: "TokenPermissions[]" },
-      { name: "nonce", type: "uint256" },
-      { name: "deadline", type: "uint256" },
-    ],
-    TokenPermissions: [
-      { name: "token", type: "address" },
-      { name: "amount", type: "uint256" },
-    ],
-  };
-
-  // Sign the Permit2 batch
-  const signetPermit2 = await client.signTypedData({
+  const signature = await client.signMessage({
     account,
-    domain: permit2Domain,
-    types: permit2Types,
-    primaryType: "PermitBatchTransferFrom",
-    message: unsignedOrder.permit2.permit,
+    message: permit.signingHash,
   });
-
-  // Update the permit2 signature
-  // unsignedOrder.permit2.signature = parseSignature(signetPermit2);
-  unsignedOrder.permit2.signature = signetPermit2;
 
   return {
-    order: unsignedOrder.order,
-    permit2: unsignedOrder.permit2,
-    signature: orderSignature,
-    chainId: unsignedOrder.chainId,
-    contractAddress: unsignedOrder.contractAddress,
+    permit: {
+      permit: permit.permit,
+      signature,
+      owner: account,
+    },
+    outputs: permit.outputs,
   };
 };
 
