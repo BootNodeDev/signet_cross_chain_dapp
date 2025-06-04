@@ -33,6 +33,7 @@
     "@tanstack/react-virtual": "^3.13.8",
     "@uniswap/default-token-list": "^13.33.0",
     "@vercel/analytics": "^1.5.0",
+    "axios": "^1.9.0",
     "connectkit": "^1.9.0",
     "next-themes": "^0.4.6",
     "react": "19.1.0",

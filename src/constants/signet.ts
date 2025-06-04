@@ -1,0 +1,21 @@
+import { parseEther } from "viem";
+
+const RPC_ENDPOINT_ROLLUP = "https://rpc.pecorino.signet.sh";
+const RPC_ENDPOINT_HOST = "https://host-rpc.pecorino.signet.sh";
+const CHAIN_ID_ROLLUP = 14174;
+const CHAIN_ID_HOST = 3151908;
+
+const ROLLUP_ORDERS_CONTRACT = "0x4E8cC181805aFC307C83298242271142b8e2f249";
+const PERMIT2_CONTRACT = "0x000000000022D473030F116dDEE9F6B43aC78BA3";
+
+const ETH_AMOUNT = parseEther("0.01");
+
+export {
+  RPC_ENDPOINT_HOST,
+  RPC_ENDPOINT_ROLLUP,
+  CHAIN_ID_HOST,
+  CHAIN_ID_ROLLUP,
+  ROLLUP_ORDERS_CONTRACT,
+  ETH_AMOUNT,
+  PERMIT2_CONTRACT,
+};
