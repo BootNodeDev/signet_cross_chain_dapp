@@ -1,11 +1,11 @@
 import axios from "axios";
 import {
   ETH_AMOUNT,
-  HOST_CHAIN_ID,
   PERMIT2_CONTRACT,
-  ROLLUP_CHAIN_ID,
+  CHAIN_ID_ROLLUP,
   ROLLUP_ORDERS_CONTRACT,
-  RPC_ENDPOINT,
+  CHAIN_ID_HOST,
+  RPC_ENDPOINT_ROLLUP,
 } from "../constants/signet";
 import { Address, getAddress, hashTypedData, WalletClient } from "viem";
 import {
@@ -20,11 +20,12 @@ import {
   UnsignedOrder,
 } from "../types/signet";
 
-// TODO Remove
+// TODO Remove and serialize bigint without this
 (BigInt.prototype as any).toJSON = function () {
   return this.toString();
 };
 
+// 5 minutes deadline
 const DEFAULT_DEADLINE = BigInt(Math.floor(Date.now() / 1000) + 60 * 5);
 
 /**
@@ -32,6 +33,7 @@ const DEFAULT_DEADLINE = BigInt(Math.floor(Date.now() / 1000) + 60 * 5);
  * @param accountAddress The signer's address
  * @param rollupTokenAddress token address on the rollup
  * @param hostTokenAddress token address on the host chain
+ * @param amount The amount of tokens to be transferred
  * @returns An unsigned order
  */
 export const createUnsignedOrder = (
@@ -52,7 +54,7 @@ export const createUnsignedOrder = (
         token: getAddress(hostTokenAddress),
         amount,
         recipient: getAddress(accountAddress),
-        chainId: HOST_CHAIN_ID,
+        chainId: CHAIN_ID_HOST,
       },
     ],
     deadline: DEFAULT_DEADLINE,
@@ -73,7 +75,7 @@ export const createUnsignedOrder = (
   return {
     order,
     permit2: permit2Batch,
-    chainId: ROLLUP_CHAIN_ID,
+    chainId: CHAIN_ID_ROLLUP,
     contractAddress: getAddress(ROLLUP_ORDERS_CONTRACT),
   };
 };
@@ -150,8 +152,6 @@ const signOrder = async (
     permitted: unsignedOrder.permit2.permit.permitted,
   });
 
-  console.log({ permit, chainId: unsignedOrder.chainId });
-
   const signature = await client.signMessage({
     account,
     message: permit.signingHash,
@@ -180,7 +180,7 @@ async function sendSignedOrder(signedOrder: SignedOrder) {
 
   try {
     const response = await axios.post<SendOrderRPCResponse>(
-      RPC_ENDPOINT,
+      RPC_ENDPOINT_ROLLUP,
       payload,
       {
         headers: {

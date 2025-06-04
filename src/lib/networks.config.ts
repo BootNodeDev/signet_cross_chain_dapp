@@ -4,24 +4,59 @@
  *
  * @packageDocumentation
  */
-import { http, type Transport } from 'viem'
-import { arbitrum, mainnet, optimism, optimismSepolia, polygon, sepolia } from 'viem/chains'
+import { defineChain, http, type Transport } from "viem";
 
-import { includeTestnets } from '@/src/constants/common'
-import { env } from '@/src/env'
+import {
+  CHAIN_ID_HOST,
+  CHAIN_ID_ROLLUP,
+  RPC_ENDPOINT_HOST,
+  RPC_ENDPOINT_ROLLUP,
+} from "../constants/signet";
 
-const devChains = [optimismSepolia, sepolia] as const
-const prodChains = [mainnet, polygon, arbitrum, optimism] as const
-const allChains = [...devChains, ...prodChains] as const
-export const chains = includeTestnets ? allChains : prodChains
-export type ChainsIds = (typeof chains)[number]['id']
+export const signetPecorino = defineChain({
+  id: CHAIN_ID_ROLLUP,
+  name: "Signet Pecorino",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Ether",
+    symbol: "ETH",
+  },
+  rpcUrls: {
+    default: {
+      http: [RPC_ENDPOINT_ROLLUP],
+    },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: "https://explorer.pecorino.signet.sh" },
+  },
+  contracts: {},
+});
 
-type RestrictedTransports = Record<ChainsIds, Transport>
+export const holeskyPecorino = defineChain({
+  id: CHAIN_ID_HOST,
+  name: "Holesky Pecorino Host",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Ether",
+    symbol: "ETH",
+  },
+  rpcUrls: {
+    default: {
+      http: [RPC_ENDPOINT_HOST],
+    },
+  },
+  blockExplorers: {
+    default: { name: "Explorer", url: "" },
+  },
+});
+const devChains = [signetPecorino, holeskyPecorino] as const;
+// const prodChains = [] as const;
+// const allChains = [...devChains, ...prodChains] as const;
+export const chains = devChains; // TODO includeTestnets ? allChains : prodChains;
+export type ChainsIds = (typeof chains)[number]["id"];
+
+type RestrictedTransports = Record<ChainsIds, Transport>;
 export const transports: RestrictedTransports = {
-  [mainnet.id]: http(env.PUBLIC_RPC_MAINNET),
-  [arbitrum.id]: http(env.PUBLIC_RPC_ARBITRUM),
-  [optimism.id]: http(env.PUBLIC_RPC_OPTIMISM),
-  [optimismSepolia.id]: http(env.PUBLIC_RPC_OPTIMISM_SEPOLIA),
-  [polygon.id]: http(env.PUBLIC_RPC_POLYGON),
-  [sepolia.id]: http(env.PUBLIC_RPC_SEPOLIA),
-}
+  [signetPecorino.id]: http(signetPecorino.rpcUrls.default.http[0]),
+  [holeskyPecorino.id]: http(holeskyPecorino.rpcUrls.default.http[0]),
+};

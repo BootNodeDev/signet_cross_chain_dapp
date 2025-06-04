@@ -1,13 +1,17 @@
 import { useExampleSignetOrder } from "@/src/hooks/useExampleSignetOrder";
-import Button from "../../sharedComponents/ui/Button";
 import { useWeb3Status } from "@/src/hooks/useWeb3Status";
-import { ConnectWalletButton } from "@/src/providers/Web3Provider";
 import { sendSignedOrder } from "@/src/utils/signet";
+import Inner from "../../sharedComponents/ui/Inner";
+import SwitchNetwork from "./SwitchNetwork";
+import PrimaryButton from "../../sharedComponents/ui/PrimaryButton";
 
 export const Home = () => {
   const { isWalletConnected } = useWeb3Status();
   return (
-    <div>{isWalletConnected ? <CreateOrder /> : <ConnectWalletButton />}</div>
+    <>
+      <SwitchNetwork />
+      <Inner>{isWalletConnected && <CreateOrder />}</Inner>
+    </>
   );
 };
 
@@ -17,7 +21,7 @@ const CreateOrder = () => {
   return (
     <div>
       {!signedOrder ? (
-        <Button
+        <PrimaryButton
           onClick={() =>
             createSignedOrder(
               "0xdAC17F958D2ee523a2206206994597C13D831ec7",
@@ -28,9 +32,9 @@ const CreateOrder = () => {
           }
         >
           Create Order
-        </Button>
+        </PrimaryButton>
       ) : (
-        <Button
+        <PrimaryButton
           onClick={() =>
             signedOrder &&
             sendSignedOrder(signedOrder).then((data: any) => {
@@ -39,7 +43,7 @@ const CreateOrder = () => {
           }
         >
           Send to RPC
-        </Button>
+        </PrimaryButton>
       )}
     </div>
   );
